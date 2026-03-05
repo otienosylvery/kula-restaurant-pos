@@ -13,9 +13,25 @@ function App() {
   ];
   const [order, setOrder] = useState([]);
   const addToOrder = (item) => {
-    setOrder([...order, item]);
+    //check if item already exists in the order
+    const existing = order.find((o)=>o.id===item.id);
+    if (existing){
+      setOrder(
+        order.map((o)=>
+        o.id === item.id ? {...o, quantity: o.quantity + 1}: o
+      )
+      );
+    }else{
+      setOrder([...order, {...item, quantity:1}]);
+    }
+    
   };
-  const total = order.reduce((sum, item)=> sum + item.price, 0);
+  //remove item from order
+  const removeFromOrder = (id)=>{
+    setOrder(order.filter((o)=>o.id !==id));
+  };
+  //calculate total
+  const total = order.reduce((sum, item)=> sum + item.price * item.quantity, 0);
 
   return (
     <div className="pos-container">
@@ -28,21 +44,22 @@ function App() {
             className="menu-item"
             onClick={() => addToOrder(item)}
           >
-            {item.name} - KSh {item.price}
+            {item.name} - KSh. {item.price}
           </button>
         ))}
       </div>
 
       <div className="order">
         <h2>Current Order</h2>
-
-        {order.map((item, index) => (
-          <div key={index} className="order-item">
-            {item.name} - KSh {item.price}
+        {order.length === 0 && <p> No items yet</p>}
+        {order.map((item) => (
+          <div key={item.id} className="order-item">
+            {item.name} x {item.quantity} - KSh. {item.price * item.quantity}{" "}
+            <button onClick={() => removeFromOrder(item.id)}>Remove</button>
           </div>
         ))}
 
-        <h3>Total: KSh {total}</h3>
+        <h3>Total: KSh. {total}</h3>
       </div>
 
     </div>
