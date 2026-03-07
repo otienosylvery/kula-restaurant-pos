@@ -99,4 +99,21 @@ html, body, #root {
     border-left: none;
     border-top: 2px solid #ddd;
   }
+  .totals{
+    margin-top: 20px;
+    padding-top: 10px;
+    border-top: 2px solid #ddd;
+  }
+  .total-row{
+    display: flex;
+    justify-content: space-between;
+    margin: 6px 0;
+    font-size: 16px;
+  }
+  .total-final {
+  font-size: 20px;
+  font-weight: bold;
+  border-top: 1px solid #ccc;
+  padding-top: 8px;
+}
 }
