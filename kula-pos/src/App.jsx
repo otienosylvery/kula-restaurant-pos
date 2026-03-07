@@ -30,6 +30,23 @@ function App() {
   const removeFromOrder = (id)=>{
     setOrder(order.filter((o)=>o.id !==id));
   };
+  //increase order quantity
+  const increaseQuantity = (id)=> {
+    setOrder(
+      order.map((o)=>
+      o.id === id ? {...o, quantity: o.quantity + 1}: o
+    )
+    );
+  };
+  //decrease quantity
+  const decreaseQuantity = (id)=>{
+    setOrder(
+      order.map((o)=>
+      o.id === id ? {...o,quantity: o.quantity -1}: o
+    )
+    .filter((o)=>o.quantity>0) //remove if quantity drops to zero
+    );
+  }
   //calculate total
   const total = order.reduce((sum, item)=> sum + item.price * item.quantity, 0);
 
@@ -54,9 +71,31 @@ function App() {
         {order.length === 0 && <p> No items yet</p>}
         {order.map((item) => (
           <div key={item.id} className="order-item">
-            {item.name} x {item.quantity} - KSh. {item.price * item.quantity}{" "}
-            <button onClick={() => removeFromOrder(item.id)}>Remove</button>
-          </div>
+            {/* {item.name} x {item.quantity} - KSh. {item.price * item.quantity}
+              <div style={{ display: "inline-block", marginLeft: "50px" }}>
+                <button style ={{marginLeft: "20px"}} className="qty-btn" onClick={() => increaseQuantity(item.id)}>+</button>
+                <button className="qty-btn" onClick={() => decreaseQuantity(item.id)}>-</button>
+                <button onClick={() => removeFromOrder(item.id)}>Remove</button> */}
+                <div className="item-info">
+      <span className="item-name">{item.name}</span>
+      <span className="item-price">KSh. {item.price * item.quantity}</span>
+    </div>
+
+    <div className="quantity-controls">
+      <button onClick={() => decreaseQuantity(item.id)}>-</button>
+      <span className="quantity">{item.quantity}</span>
+      <button onClick={() => increaseQuantity(item.id)}>+</button>
+    </div>
+
+    <button
+      className="remove-btn"
+      onClick={() => removeFromOrder(item.id)}
+    >
+      ✕
+    </button>
+
+          
+</div>
         ))}
 
         <h3>Total: KSh. {total}</h3>

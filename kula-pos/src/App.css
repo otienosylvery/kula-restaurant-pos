@@ -40,9 +40,54 @@ html, body, #root {
 }
 
 .order-item {
-  padding: 10px;
-  border-bottom: 1px solid #eee;
+  display:flex;
+  justify-content: space-between;
+  align-items:center;
+  padding: 12px;
+  margin-bottom:10px;
+  border-radius:6px;
+  border: 1px solid #eee;
 }
+.item-info{
+  display:flex;
+  flex-direction: column;
+}
+.item-name{
+  font-weight: bold;
+}
+.item-price{
+  font-size: 14px;
+  color: #666;
+}
+.quantity-controls{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.quantity-controls button{
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #875858;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.quantity {
+  font-weight: bold;
+  min-width: 20px;
+  text-align: center;
+}
+.remove-btn {
+  background: #742b2b;
+  border: none;
+  color: white;
+  padding: 6px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
 @media (max-width: 768px){
   .pos-container{
     flex-direction:column;
