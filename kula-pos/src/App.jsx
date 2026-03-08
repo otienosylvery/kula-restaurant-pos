@@ -13,6 +13,9 @@ function App() {
   ];
 
   const [order, setOrder] = useState([]);
+  //states to control receipt popup
+  const[showReceipt, setShowReceipt] = useState(false);
+  const[lastOrder, setLastOrder]=useState([]);
 
   // Add item to order
   const addToOrder = (item) => {
@@ -59,11 +62,12 @@ function App() {
   };
   //checkout
   const checkout = ()=>{
-    if (order.length ===0){
-      alert ("No items in the order.");
-      return;
-    }
-    alert (`Order placed! \nTotal: KSh. ${total.toFixed(2)}`);
+    if (order.length ===0)return;
+    //save the order for the receipt
+    setLastOrder(order);
+    //show receipt popup
+    setShowReceipt(true);
+    //clear current order
     setOrder([])
   };
 
@@ -159,6 +163,33 @@ function App() {
         </div>
 
       </div>
+            {showReceipt &&(
+      <div className="receipt-overlay">
+        <div className="receipt-modal">
+          <h2>Receipt</h2>
+          {lastOrder.map((item)=>(
+            <div key={item.id} className="receipt-item">
+              <span>{item.name} x {item.quantity}</span>
+              <span>KSh. {item.price * item.quantity}</span>
+            </div>
+          ))}
+          <hr />
+
+          <div className="receipt-total">
+            <strong>Total</strong>
+            <strong>
+              KSh. {""}
+              {lastOrder
+                .reduce((sum, item)=> sum+ item.price * item.quantity, 0)
+                .toFixed(2)}
+            </strong>
+          </div>
+            <button onClick={()=> setShowReceipt(false)}>
+              New Order
+            </button>
+        </div>
+      </div>
+    )}
     </div>
   );
 }
