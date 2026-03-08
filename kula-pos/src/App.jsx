@@ -53,6 +53,20 @@ function App() {
         .filter((o) => o.quantity > 0)
     );
   };
+  //clear order
+  const clearOrder =()=>{
+    setOrder([]);
+  };
+  //checkout
+  const checkout = ()=>{
+    if (order.length ===0){
+      alert ("No items in the order.");
+      return;
+    }
+    alert (`Order placed! \nTotal: KSh. ${total.toFixed(2)}`);
+    setOrder([])
+  };
+
 
   // Calculations
   const subtotal = order.reduce(
@@ -130,6 +144,18 @@ function App() {
             <span>Total </span>
             <span>KSh. {total.toFixed(2)}</span>
           </div>
+        </div>
+        <div className="action-bar">
+          <button className="clear-btn"onClick={clearOrder}>
+            Clear Order
+            </button>
+
+            <button 
+            className="checkout-btn" 
+            onClick={checkout}
+              disabled={order.length===0}>
+              Checkout
+              </button>
         </div>
 
       </div>
