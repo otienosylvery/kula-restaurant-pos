@@ -182,6 +182,7 @@ html, body, #root {
   padding: 25px;
   width: 320px;
   border-radius: 8px;
+  font-family: monospace;
 }
 
 .receipt-item {
@@ -190,13 +191,25 @@ html, body, #root {
   margin: 6px 0;
 }
 
-.receipt-total {
+.receipt-actions{
+  margin-top: 15px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+.receipt-row{
   display: flex;
   justify-content: space-between;
-  font-size: 18px;
-  margin-top: 10px;
+  margin: 6px 0;
 }
 
+.receipt-final{
+  font-weight: bold;
+  font-size: 18px;
+  border-top: 1px dashed #aaa;
+  padding-top: 6px;
+  margin-top: 6px;
+}
 /* MOBILE RESPONSIVE */
 @media (max-width: 768px) {
 
@@ -210,6 +223,26 @@ html, body, #root {
     height: 50vh;
     border-left: none;
     border-top: 2px solid #ddd;
+  }
+
+}
+@media print {
+
+  body * {
+    visibility: hidden;
+  }
+
+  .receipt-modal, .receipt-modal * {
+    visibility: visible;
+  }
+
+  .receipt-modal {
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+  .receipt-actions{
+    display: none;
   }
 
 }

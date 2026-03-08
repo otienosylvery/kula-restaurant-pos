@@ -70,7 +70,10 @@ function App() {
     //clear current order
     setOrder([])
   };
-
+  //open browser print dialog to print receipt
+  const printReceipt = ()=>{
+    window.print();
+  };
 
   // Calculations
   const subtotal = order.reduce(
@@ -81,6 +84,13 @@ function App() {
   const taxRate = 0.16;
   const tax = subtotal * taxRate;
   const total = subtotal + tax;
+
+  //receipt calculations
+  const receiptSubtotal = lastOrder.reduce(
+    (sum, item)=> sum+ item.price*item.quantity,0
+  );
+  const receiptTax = receiptSubtotal * 0.16;
+  const receiptTotal = receiptSubtotal + receiptTax;
 
   return (
     <div className="pos-container">
@@ -163,7 +173,8 @@ function App() {
         </div>
 
       </div>
-            {showReceipt &&(
+      {/* receipt modal */}
+    {showReceipt &&(
       <div className="receipt-overlay">
         <div className="receipt-modal">
           <h2>Receipt</h2>
@@ -175,18 +186,39 @@ function App() {
           ))}
           <hr />
 
-          <div className="receipt-total">
-            <strong>Total</strong>
-            <strong>
-              KSh. {""}
-              {lastOrder
-                .reduce((sum, item)=> sum+ item.price * item.quantity, 0)
-                .toFixed(2)}
-            </strong>
-          </div>
-            <button onClick={()=> setShowReceipt(false)}>
+<div>
+
+  <div className="receipt-row">
+    <span>Subtotal</span>
+    <span>KSh. {receiptSubtotal.toFixed(2)}</span>
+  </div>
+
+  <div className="receipt-row">
+    <span>Tax (16%)</span>
+    <span>KSh. {receiptTax.toFixed(2)}</span>
+  </div>
+
+  <div className="receipt-row receipt-final">
+    <span>Total</span>
+    <span>KSh. {receiptTotal.toFixed(2)}</span>
+  </div>
+
+</div>
+          <div className="receipt-actions">
+            <button 
+            className="print-btn"
+            onClick={printReceipt}
+            >
+              Print Receipt
+            </button>
+            <button
+            className="new-order-btn"
+            onClick={()=> setShowReceipt(false)}
+            >
               New Order
             </button>
+          </div>
+            
         </div>
       </div>
     )}
