@@ -160,6 +160,10 @@ html, body, #root {
 .checkout-btn:hover {
   background: #226e3c;
 }
+.checkout-btn:disabled{
+  background: #ccc;
+  cursor: not-allowed;
+}
 
 /* MOBILE RESPONSIVE */
 @media (max-width: 768px) {
