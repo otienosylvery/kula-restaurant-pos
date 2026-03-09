@@ -13,20 +13,16 @@ function App() {
   ];
 
   const [order, setOrder] = useState([]);
-  //states to control receipt popup
-  const[showReceipt, setShowReceipt] = useState(false);
-  const[lastOrder, setLastOrder]=useState([]);
-  //states for date and order number
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [lastOrder, setLastOrder] = useState([]);
   const [receiptMeta, setReceiptMeta] = useState({
     orderNumber: "",
     date: "",
     time: "",
-  })
+  });
 
-  // Add item to order
   const addToOrder = (item) => {
     const existing = order.find((o) => o.id === item.id);
-
     if (existing) {
       setOrder(
         order.map((o) =>
@@ -38,12 +34,10 @@ function App() {
     }
   };
 
-  // Remove item completely
   const removeFromOrder = (id) => {
     setOrder(order.filter((o) => o.id !== id));
   };
 
-  // Increase quantity
   const increaseQuantity = (id) => {
     setOrder(
       order.map((o) =>
@@ -52,7 +46,6 @@ function App() {
     );
   };
 
-  // Decrease quantity
   const decreaseQuantity = (id) => {
     setOrder(
       order
@@ -62,49 +55,30 @@ function App() {
         .filter((o) => o.quantity > 0)
     );
   };
-  //clear order
-  const clearOrder =()=>{
-    setOrder([]);
-  };
-  //checkout
-  const checkout = ()=>{
-    if (order.length ===0)return;
 
+  const clearOrder = () => setOrder([]);
+
+  const checkout = () => {
+    if (order.length === 0) return;
     const completedOrder = [...order];
     const now = new Date();
-
-    //save the order for the receipt
     setLastOrder(completedOrder);
-    //receipt meta
     setReceiptMeta({
-      orderNumber: Math.floor(100000 + Math.random()*900000),
+      orderNumber: Math.floor(100000 + Math.random() * 900000),
       date: now.toLocaleDateString(),
       time: now.toLocaleTimeString(),
     });
-    //show receipt popup
     setShowReceipt(true);
-    //clear current order
-    setOrder([])
-  };
-  //open browser print dialog to print receipt
-  const printReceipt = ()=>{
-    window.print();
+    setOrder([]);
   };
 
-  // Calculations
-  const subtotal = order.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
+  const printReceipt = () => window.print();
 
-  const taxRate = 0.16;
-  const tax = subtotal * taxRate;
+  const subtotal = order.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const tax = subtotal * 0.16;
   const total = subtotal + tax;
 
-  //receipt calculations
-  const receiptSubtotal = lastOrder.reduce(
-    (sum, item)=> sum+ item.price*item.quantity,0
-  );
+  const receiptSubtotal = lastOrder.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const receiptTax = receiptSubtotal * 0.16;
   const receiptTotal = receiptSubtotal + receiptTax;
 
@@ -112,150 +86,105 @@ function App() {
     <div className="pos-container">
       
       {/* MENU PANEL */}
-      <div className="menu">
+      <div className="menu-panel">
         <h2>Menu</h2>
-
-        {menu.map((item) => (
-          <button
-            key={item.id}
-            className="menu-item"
-            onClick={() => addToOrder(item)}
-          >
-            {item.name} - KSh. {item.price}
-          </button>
-        ))}
+        <div className="menu-grid">
+          {menu.map((item) => (
+            <button key={item.id} className="menu-item-grid" onClick={() => addToOrder(item)}>
+              <div>{item.name}</div>
+              <div className="price">KSh. {item.price}</div>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ORDER PANEL */}
       <div className="order">
         <h2>Current Order</h2>
-
         {order.length === 0 && <p>No items yet</p>}
 
         {order.map((item) => (
           <div key={item.id} className="order-item">
-            
             <div className="item-info">
               <span className="item-name">{item.name}</span>
-              <span className="item-price">
-                KSh. {item.price * item.quantity}
-              </span>
+              <span className="item-price">KSh. {item.price * item.quantity}</span>
             </div>
-
             <div className="quantity-controls">
               <button onClick={() => decreaseQuantity(item.id)}>-</button>
               <span className="quantity">{item.quantity}</span>
               <button onClick={() => increaseQuantity(item.id)}>+</button>
             </div>
-
-            <button
-              className="remove-btn"
-              onClick={() => removeFromOrder(item.id)}
-            >
-              ✕
-            </button>
-
+            <button className="remove-btn" onClick={() => removeFromOrder(item.id)}>✕</button>
           </div>
         ))}
 
-        {/* TOTALS SECTION */}
+        {/* TOTALS */}
         <div className="totals">
           <div className="total-row">
-            <span>Subtotal </span>
+            <span>Subtotal</span>
             <span>KSh. {subtotal.toFixed(2)}</span>
           </div>
-
           <div className="total-row">
-            <span>Tax (16%) </span>
+            <span>Tax (16%)</span>
             <span>KSh. {tax.toFixed(2)}</span>
           </div>
-
           <div className="total-row total-final">
-            <span>Total </span>
+            <span>Total</span>
             <span>KSh. {total.toFixed(2)}</span>
           </div>
         </div>
+
+        {/* ACTION BAR */}
         <div className="action-bar">
-          <button className="clear-btn"onClick={clearOrder}>
-            Clear Order
-            </button>
-
-            <button 
-            className="checkout-btn" 
-            onClick={checkout}
-              disabled={order.length===0}>
-              Checkout
-              </button>
+          <button className="clear-btn" onClick={clearOrder}>Clear Order</button>
+          <button className="checkout-btn" onClick={checkout} disabled={order.length === 0}>Checkout</button>
         </div>
-
       </div>
-      {/* receipt modal */}
-    {showReceipt &&(
-      <div className="receipt-overlay">
-        <div className="receipt-modal">
-          <h2>Receipt</h2>
 
-          {/* Receipt Header */}
-          <div className="receipt-header">
-            <div className="business-name">Yola Bites Eatery</div>
-            <div className="business-address">Stadium Road, Nyandiwa, Kenya.</div>
-            <div>Order #: {receiptMeta.orderNumber}</div>
-            <div>{receiptMeta.date}</div>
-            <div>{receiptMeta.time}</div>
-          </div>
-          <hr />
-
-          {lastOrder.map((item)=>(
-            <div key={item.id} className="receipt-item">
-              <span>{item.name} x {item.quantity}</span>
-              <span>KSh. {item.price * item.quantity}</span>
+      {/* RECEIPT MODAL */}
+      {showReceipt && (
+        <div className="receipt-overlay">
+          <div className="receipt-modal">
+            <h2>Receipt</h2>
+            <div className="receipt-header">
+              <div className="business-name">Yola Bites Eatery</div>
+              <div className="business-address">Stadium Road, Nyandiwa, Kenya.</div>
+              <div>Order #: {receiptMeta.orderNumber}</div>
+              <div>{receiptMeta.date}</div>
+              <div>{receiptMeta.time}</div>
             </div>
-          ))}
-          <hr />
-
-<div>
-
-  <div className="receipt-row">
-    <span>Subtotal</span>
-    <span>KSh. {receiptSubtotal.toFixed(2)}</span>
-  </div>
-
-  <div className="receipt-row">
-    <span>Tax (16%)</span>
-    <span>KSh. {receiptTax.toFixed(2)}</span>
-  </div>
-
-  <div className="receipt-row receipt-final">
-    <span>Total</span>
-    <span>KSh. {receiptTotal.toFixed(2)}</span>
-  </div>
-
-</div>
-          <div className="receipt-actions">
-            <button 
-            className="print-btn"
-            onClick={printReceipt}
-            >
-              Print Receipt
-            </button>
-            <button
-            className="new-order-btn"
-            onClick={()=> setShowReceipt(false)}
-            >
-              New Order
-            </button>
-          </div>
-            
-        {/* Receipt Footer */}
-          <div className="receipt-footer">
-            <p>
-              <span style={{fontStyle:'italic', fontWeight:'bold'}}>Sip. Bite. Smile.</span>
-            </p>
-            <p>Thank you for dining with us!</p>
+            <hr />
+            {lastOrder.map((item) => (
+              <div key={item.id} className="receipt-item">
+                <span>{item.name} x {item.quantity}</span>
+                <span>KSh. {item.price * item.quantity}</span>
+              </div>
+            ))}
+            <hr />
+            <div className="receipt-row">
+              <span>Subtotal</span>
+              <span>KSh. {receiptSubtotal.toFixed(2)}</span>
+            </div>
+            <div className="receipt-row">
+              <span>Tax (16%)</span>
+              <span>KSh. {receiptTax.toFixed(2)}</span>
+            </div>
+            <div className="receipt-row receipt-final">
+              <span>Total</span>
+              <span>KSh. {receiptTotal.toFixed(2)}</span>
+            </div>
+            <div className="receipt-actions">
+              <button className="print-btn" onClick={printReceipt}>Print Receipt</button>
+              <button className="new-order-btn" onClick={() => setShowReceipt(false)}>New Order</button>
+            </div>
+            <div className="receipt-footer">
+              <p><span style={{ fontStyle: 'italic', fontWeight: 'bold' }}>Sip. Bite. Smile.</span></p>
+              <p>Thank you for dining with us!</p>
+            </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
+
     </div>
   );
 }
