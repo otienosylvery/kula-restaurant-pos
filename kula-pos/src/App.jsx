@@ -16,6 +16,12 @@ function App() {
   //states to control receipt popup
   const[showReceipt, setShowReceipt] = useState(false);
   const[lastOrder, setLastOrder]=useState([]);
+  //states for date and order number
+  const [receiptMeta, setReceiptMeta] = useState({
+    orderNumber: "",
+    date: "",
+    time: "",
+  })
 
   // Add item to order
   const addToOrder = (item) => {
@@ -63,8 +69,18 @@ function App() {
   //checkout
   const checkout = ()=>{
     if (order.length ===0)return;
+
+    const completedOrder = [...order];
+    const now = new Date();
+
     //save the order for the receipt
-    setLastOrder(order);
+    setLastOrder(completedOrder);
+    //receipt meta
+    setReceiptMeta({
+      orderNumber: Math.floor(100000 + Math.random()*900000),
+      date: now.toLocaleDateString(),
+      time: now.toLocaleTimeString(),
+    });
     //show receipt popup
     setShowReceipt(true);
     //clear current order
@@ -178,6 +194,15 @@ function App() {
       <div className="receipt-overlay">
         <div className="receipt-modal">
           <h2>Receipt</h2>
+
+          {/* Receipt Header */}
+          <div className="receipt-header">
+            <div>Order #: {receiptMeta.orderNumber}</div>
+            <div>{receiptMeta.date}</div>
+            <div>{receiptMeta.time}</div>
+          </div>
+          <hr />
+
           {lastOrder.map((item)=>(
             <div key={item.id} className="receipt-item">
               <span>{item.name} x {item.quantity}</span>

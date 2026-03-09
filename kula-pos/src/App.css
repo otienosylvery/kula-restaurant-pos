@@ -244,5 +244,13 @@ html, body, #root {
   .receipt-actions{
     display: none;
   }
+  .receipt-header{
+    text-align: center;
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+  .receipt-header div{
+    margin: 2px 0;
+  }
 
 }
