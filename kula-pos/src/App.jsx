@@ -197,6 +197,8 @@ function App() {
 
           {/* Receipt Header */}
           <div className="receipt-header">
+            <div className="business-name">Yola Bites Eatery</div>
+            <div className="business-address">Stadium Road, Nyandiwa, Kenya.</div>
             <div>Order #: {receiptMeta.orderNumber}</div>
             <div>{receiptMeta.date}</div>
             <div>{receiptMeta.time}</div>
@@ -244,6 +246,13 @@ function App() {
             </button>
           </div>
             
+        {/* Receipt Footer */}
+          <div className="receipt-footer">
+            <p>
+              <span style={{fontStyle:'italic', fontWeight:'bold'}}>Sip. Bite. Smile.</span>
+            </p>
+            <p>Thank you for dining with us!</p>
+          </div>
         </div>
       </div>
     )}

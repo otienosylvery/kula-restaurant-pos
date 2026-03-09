@@ -302,4 +302,22 @@ html, body, #root {
     border-top: 1px dashed #000;
     margin: 6px 0;
   }
+  /* Business name/address styling */
+.receipt-header .business-name {
+  font-weight: bold;
+  font-size: 14px;
+  text-align: center;
+}
+
+.receipt-header .business-address {
+  font-size: 12px;
+  text-align: center;
+  margin-bottom: 4px;
+}
+.receipt-footer{
+  text-align: center;
+  margin-top: 12px;
+  font-size: 13px;
+  color: #444;
+}
 }
