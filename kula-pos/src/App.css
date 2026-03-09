@@ -53,6 +53,30 @@ html, body, #root {
   font-weight: bold;
   font-size: 14px;
 }
+.category-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.category-tab {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 20px;
+  background: #875858;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+  transition: transform 0.1s, background 0.2s;
+}
+
+.category-tab:hover {
+  transform: scale(1.05);
+}
+
+.category-tab.active {
+  background: #2c8f4e;
+}
 
 /* ORDER PANEL */
 .order {
@@ -204,6 +228,7 @@ html, body, #root {
   width: 320px;
   border-radius: 8px;
   font-family: monospace;
+  color: black;
 }
 
 .receipt-item {

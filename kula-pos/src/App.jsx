@@ -3,15 +3,17 @@ import "./App.css";
 
 function App() {
   const menu = [
-    { id: 1, name: "Fries", price: 80 },
-    { id: 2, name: "Chicken", price: 300 },
-    { id: 3, name: "Chicken Smokie", price: 40 },
-    { id: 4, name: "Steam", price: 50 },
-    { id: 5, name: "500ml Soda", price: 60 },
-    { id: 6, name: "300ml Soda", price: 40 },
-    { id: 7, name: "Afya", price: 80 },
+    { id: 1, name: "Fries", price: 80, category: "Food" },
+    { id: 2, name: "Chicken", price: 300, category:"Food" },
+    { id: 3, name: "Chicken Smokie", price: 40, category:"Snacks" },
+    { id: 4, name: "Steam", price: 50, category: "Drinks" },
+    { id: 5, name: "500ml Soda", price: 60, category: "Drinks" },
+    { id: 6, name: "300ml Soda", price: 40, category: "Drinks" },
+    { id: 7, name: "Afya", price: 80, category: "Drinks" },
   ];
 
+  const categories = ["All", "Food", "Drinks"];
+  const[selectedCategory, setSelectedCategory] = useState("All");
   const [order, setOrder] = useState([]);
   const [showReceipt, setShowReceipt] = useState(false);
   const [lastOrder, setLastOrder] = useState([]);
@@ -88,8 +90,23 @@ function App() {
       {/* MENU PANEL */}
       <div className="menu-panel">
         <h2>Menu</h2>
+        <div className="category-tabs">
+          {
+            categories.map(cat =>(
+              <button
+                key={cat}
+                className={`category-tab ${selectedCategory ===cat ? "active" : ""}`}
+                onClick={()=> setSelectedCategory(cat)}
+                >
+                  {cat}
+              </button>
+            ))
+          }
+        </div>
         <div className="menu-grid">
-          {menu.map((item) => (
+          {menu
+          .filter(item => selectedCategory === "All" || item.category === selectedCategory)
+          .map((item) => (
             <button key={item.id} className="menu-item-grid" onClick={() => addToOrder(item)}>
               <div>{item.name}</div>
               <div className="price">KSh. {item.price}</div>
