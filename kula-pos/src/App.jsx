@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import toast, { Toaster } from "react-hot-toast";
 import "./App.css";
 
 function App() {
@@ -64,14 +65,31 @@ function App() {
     if (order.length === 0) return;
     const completedOrder = [...order];
     const now = new Date();
+    const orderNum = Math.floor(100000 + Math.random() * 900000);
+    const totalAmount = (completedOrder.reduce((sum, item) => sum + item.price * item.quantity, 0) * 1.16).toFixed(2);
+    
     setLastOrder(completedOrder);
     setReceiptMeta({
-      orderNumber: Math.floor(100000 + Math.random() * 900000),
+      orderNumber: orderNum,
       date: now.toLocaleDateString(),
       time: now.toLocaleTimeString(),
     });
     setShowReceipt(true);
     setOrder([]);
+    
+    // Show success toast
+    toast.success(`Order #${orderNum} completed! Total: KSh. ${totalAmount}`, {
+      duration: 1500,
+      position: 'top-right',
+      style: {
+        background: '#2c8f4e',
+        color: '#fff',
+        borderRadius: '8px',
+        padding: '16px',
+        fontSize: '14px',
+        fontWeight: 'bold',
+      },
+    });
   };
 
   const printReceipt = () => window.print();
@@ -86,6 +104,7 @@ function App() {
 
   return (
     <div className="pos-container">
+      <Toaster />
       
       {/* MENU PANEL */}
       <div className="menu-panel">
