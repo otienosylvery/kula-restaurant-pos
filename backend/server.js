@@ -19,6 +19,23 @@ const menuSchema = new mongoose.Schema({
   available: Boolean,
 });
 
+//order schema for cretaing order model
+const orderSchema = new mongoose.Schema({
+  items: [
+    {
+      name: String,
+      price: Number,
+      quantity: Number,
+    }
+  ],
+  subtotal: Number,
+  tax: Number,
+  total: Number,
+  createdAt: { type: Date, default: Date.now },
+});
+
+const Order = mongoose.model("Order", orderSchema,);
+
 // specify collection name
 const MenuItem = mongoose.model("MenuItem", menuSchema, "menu_items");
 
@@ -52,6 +69,32 @@ app.get("/api/menu", async (req, res) => {
     res.json(items);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch menu items" });
+  }
+});
+
+//POST to store order in database
+app.post("/api/orders", async (req, res) => {
+  try {
+    const { items, subtotal, tax, total } = req.body;
+
+    if (!items || items.length === 0) {
+      return res.status(400).json({ error: "Order must contain at least one item" });
+    }
+
+    const order = new Order({
+      items,
+      subtotal,
+      tax,
+      total,
+    });
+    await order.save();
+
+    res.status(201).json({
+      message: "Order saved successfully",
+      orderId: order._id,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to save order" });
   }
 });
 
