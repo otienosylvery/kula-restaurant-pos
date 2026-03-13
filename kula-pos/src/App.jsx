@@ -3,36 +3,37 @@ import toast, { Toaster } from "react-hot-toast";
 import "./App.css";
 
 function App() {
-  const [menu, setMenu] = useState([])
-  const[menuLoading, setMenuLoading] = useState(true);
-  const[menuError, setMenuError] = useState(null);
+  // Menu state
+  const [menu, setMenu] = useState([]);
+  const [menuLoading, setMenuLoading] = useState(true);
+  const [menuError, setMenuError] = useState(null);
 
+  // Fetch menu from backend
   useEffect(() => {
-  fetch("http://localhost:5000/api/menu")
-    .then((res) => {
-      if (!res.ok) throw new Error("Failed to fetch menu");
-      return res.json();
-    })
-    .then((data) => {
-      // Map MongoDB _id to id so the rest of your app works unchanged
-      const formatted = data.map(item => ({
-        id: item._id,
-        name: item.name,
-        price: item.price,
-        category: item.category,
-      }));
+    fetch("http://localhost:5000/api/menu")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch menu");
+        return res.json();
+      })
+      .then((data) => {
+        const formatted = data.map((item) => ({
+          id: item._id,
+          name: item.name,
+          price: item.price,
+          category: item.category,
+        }));
+        setMenu(formatted);
+        setMenuLoading(false);
+      })
+      .catch((err) => {
+        setMenuError(err.message);
+        setMenuLoading(false);
+      });
+  }, []);
 
-      setMenu(formatted);
-      setMenuLoading(false);
-    })
-    .catch((err) => {
-      setMenuError(err.message);
-      setMenuLoading(false);
-    });
-}, []);
-
+  // POS states
   const categories = ["All", "Food", "Drinks"];
-  const[selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedCategory, setSelectedCategory] = useState("All");
   const [order, setOrder] = useState([]);
   const [showReceipt, setShowReceipt] = useState(false);
   const [lastOrder, setLastOrder] = useState([]);
@@ -42,6 +43,7 @@ function App() {
     time: "",
   });
 
+  // Add / remove / quantity functions
   const addToOrder = (item) => {
     const existing = order.find((o) => o.id === item.id);
     if (existing) {
@@ -55,19 +57,14 @@ function App() {
     }
   };
 
-  const removeFromOrder = (id) => {
-    setOrder(order.filter((o) => o.id !== id));
-  };
-
-  const increaseQuantity = (id) => {
+  const removeFromOrder = (id) => setOrder(order.filter((o) => o.id !== id));
+  const increaseQuantity = (id) =>
     setOrder(
       order.map((o) =>
         o.id === id ? { ...o, quantity: o.quantity + 1 } : o
       )
     );
-  };
-
-  const decreaseQuantity = (id) => {
+  const decreaseQuantity = (id) =>
     setOrder(
       order
         .map((o) =>
@@ -75,43 +72,10 @@ function App() {
         )
         .filter((o) => o.quantity > 0)
     );
-  };
 
   const clearOrder = () => setOrder([]);
 
-  const checkout = () => {
-    if (order.length === 0) return;
-    const completedOrder = [...order];
-    const now = new Date();
-    const orderNum = Math.floor(100000 + Math.random() * 900000);
-    const totalAmount = (completedOrder.reduce((sum, item) => sum + item.price * item.quantity, 0) * 1.16).toFixed(2);
-    
-    setLastOrder(completedOrder);
-    setReceiptMeta({
-      orderNumber: orderNum,
-      date: now.toLocaleDateString(),
-      time: now.toLocaleTimeString(),
-    });
-    setShowReceipt(true);
-    setOrder([]);
-    
-    // Show success toast
-    toast.success(`Order #${orderNum} completed! Total: KSh. ${totalAmount}`, {
-      duration: 1500,
-      position: 'top-right',
-      style: {
-        background: '#2c8f4e',
-        color: '#fff',
-        borderRadius: '8px',
-        padding: '16px',
-        fontSize: '14px',
-        fontWeight: 'bold',
-      },
-    });
-  };
-
-  const printReceipt = () => window.print();
-
+  // Totals
   const subtotal = order.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const tax = subtotal * 0.16;
   const total = subtotal + tax;
@@ -120,38 +84,102 @@ function App() {
   const receiptTax = receiptSubtotal * 0.16;
   const receiptTotal = receiptSubtotal + receiptTax;
 
-  //handling loading and error states for menu
+  // Checkout function with backend POST
+  const checkout = async () => {
+    if (order.length === 0) return;
+
+    const completedOrder = [...order];
+    const now = new Date();
+    const orderNum = Math.floor(100000 + Math.random() * 900000);
+
+    setLastOrder(completedOrder);
+    setReceiptMeta({
+      orderNumber: orderNum,
+      date: now.toLocaleDateString(),
+      time: now.toLocaleTimeString(),
+    });
+    setShowReceipt(true);
+    setOrder([]); // clear current order
+
+    // Calculate totals for backend
+    const backendOrder = {
+      items: completedOrder.map((item) => ({
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+      })),
+      subtotal,
+      tax,
+      total,
+    };
+
+    // POST order to backend
+    try {
+      const res = await fetch("http://localhost:5000/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(backendOrder),
+      });
+
+      if (!res.ok) throw new Error("Failed to save order");
+
+      const data = await res.json();
+      console.log("Order saved:", data.orderId);
+      toast.success(`Order #${orderNum} completed! Total: KSh. ${total.toFixed(2)}`, {
+        duration: 1500,
+        position: "top-right",
+        style: {
+          background: "#2c8f4e",
+          color: "#fff",
+          borderRadius: "8px",
+          padding: "16px",
+          fontSize: "14px",
+          fontWeight: "bold",
+        },
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to save order");
+    }
+  };
+
+  const printReceipt = () => window.print();
+
+  // Loading / error handling
   if (menuLoading) return <p>Loading menu...</p>;
   if (menuError) return <p>Error loading menu: {menuError}</p>;
+
   return (
     <div className="pos-container">
       <Toaster />
-      
+
       {/* MENU PANEL */}
       <div className="menu-panel">
         <h2>Menu</h2>
         <div className="category-tabs">
-          {
-            categories.map(cat =>(
-              <button
-                key={cat}
-                className={`category-tab ${selectedCategory ===cat ? "active" : ""}`}
-                onClick={()=> setSelectedCategory(cat)}
-                >
-                  {cat}
-              </button>
-            ))
-          }
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              className={`category-tab ${selectedCategory === cat ? "active" : ""}`}
+              onClick={() => setSelectedCategory(cat)}
+            >
+              {cat}
+            </button>
+          ))}
         </div>
         <div className="menu-grid">
           {menu
-          .filter(item => selectedCategory === "All" || item.category === selectedCategory)
-          .map((item) => (
-            <button key={item.id} className="menu-item-grid" onClick={() => addToOrder(item)}>
-              <div>{item.name}</div>
-              <div className="price">KSh. {item.price}</div>
-            </button>
-          ))}
+            .filter((item) => selectedCategory === "All" || item.category === selectedCategory)
+            .map((item) => (
+              <button
+                key={item.id}
+                className="menu-item-grid"
+                onClick={() => addToOrder(item)}
+              >
+                <div>{item.name}</div>
+                <div className="price">KSh. {item.price}</div>
+              </button>
+            ))}
         </div>
       </div>
 
@@ -159,7 +187,6 @@ function App() {
       <div className="order">
         <h2>Current Order</h2>
         {order.length === 0 && <p>No items yet</p>}
-
         {order.map((item) => (
           <div key={item.id} className="order-item">
             <div className="item-info">
@@ -241,7 +268,6 @@ function App() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
