@@ -3,15 +3,25 @@ import mongoose from "mongoose";
 import cors from "cors";
 
 const app = express();
-app.use(cors());
-app.use(express.json());
 
-// connect to MongoDB
+// --------------------------
+// Middleware
+// --------------------------
+app.use(cors());           // Allow React frontend to fetch
+app.use(express.json());   // Parse JSON bodies
+
+// --------------------------
+// MongoDB Connection
+// --------------------------
 mongoose.connect("mongodb://localhost:27017/pos_system")
-  .then(() => console.log("Connected to MongoDB"))
-  .catch(err => console.error("Could not connect to MongoDB", err));
+  .then(() => console.log("✅ Connected to MongoDB"))
+  .catch(err => console.error("❌ Could not connect to MongoDB", err));
 
-// schema
+// --------------------------
+// Schemas & Models
+// --------------------------
+
+// Menu schema
 const menuSchema = new mongoose.Schema({
   name: String,
   price: Number,
@@ -19,7 +29,10 @@ const menuSchema = new mongoose.Schema({
   available: Boolean,
 });
 
-//order schema for cretaing order model
+// Menu model with explicit collection
+const MenuItem = mongoose.model("MenuItem", menuSchema, "menu_items");
+
+// Order schema
 const orderSchema = new mongoose.Schema({
   items: [
     {
@@ -34,12 +47,12 @@ const orderSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-const Order = mongoose.model("Order", orderSchema,);
+// Order model
+const Order = mongoose.model("Order", orderSchema, "orders");
 
-// specify collection name
-const MenuItem = mongoose.model("MenuItem", menuSchema, "menu_items");
-
-// seed default menu items if none exist
+// --------------------------
+// Seed default menu items
+// --------------------------
 async function seedMenu() {
   const count = await MenuItem.countDocuments();
   if (count === 0) {
@@ -54,25 +67,29 @@ async function seedMenu() {
       { name: 'Afya', price: 80, category: 'Drinks', available: true },
     ];
     await MenuItem.insertMany(defaultItems);
-    console.log('Default menu has been seeded');
+    console.log('✅ Default menu has been seeded');
   }
 }
 
-// run seeding after connection
+// Run seeding once DB is open
 mongoose.connection.once('open', seedMenu);
 
+// --------------------------
+// API Endpoints
+// --------------------------
 
-// API endpoint
+// GET menu items
 app.get("/api/menu", async (req, res) => {
   try {
     const items = await MenuItem.find({ available: true });
     res.json(items);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Failed to fetch menu items" });
   }
 });
 
-//POST to store order in database
+// POST a new order
 app.post("/api/orders", async (req, res) => {
   try {
     const { items, subtotal, tax, total } = req.body;
@@ -87,19 +104,24 @@ app.post("/api/orders", async (req, res) => {
       tax,
       total,
     });
+
     await order.save();
 
+    console.log("✅ Order saved:", order._id);
     res.status(201).json({
       message: "Order saved successfully",
       orderId: order._id,
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Failed to save order" });
   }
 });
 
-// start server
+// --------------------------
+// Start Server
+// --------------------------
 const PORT = 5000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
