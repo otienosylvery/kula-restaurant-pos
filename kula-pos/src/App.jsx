@@ -1,17 +1,35 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import "./App.css";
 
 function App() {
-  const menu = [
-    { id: 1, name: "Fries", price: 80, category: "Food" },
-    { id: 2, name: "Chicken", price: 300, category:"Food" },
-    { id: 3, name: "Chicken Smokie", price: 40, category:"Snacks" },
-    { id: 4, name: "Steam", price: 50, category: "Drinks" },
-    { id: 5, name: "500ml Soda", price: 60, category: "Drinks" },
-    { id: 6, name: "300ml Soda", price: 40, category: "Drinks" },
-    { id: 7, name: "Afya", price: 80, category: "Drinks" },
-  ];
+  const [menu, setMenu] = useState([])
+  const[menuLoading, setMenuLoading] = useState(true);
+  const[menuError, setMenuError] = useState(null);
+
+  useEffect(() => {
+  fetch("http://localhost:5000/api/menu")
+    .then((res) => {
+      if (!res.ok) throw new Error("Failed to fetch menu");
+      return res.json();
+    })
+    .then((data) => {
+      // Map MongoDB _id to id so the rest of your app works unchanged
+      const formatted = data.map(item => ({
+        id: item._id,
+        name: item.name,
+        price: item.price,
+        category: item.category,
+      }));
+
+      setMenu(formatted);
+      setMenuLoading(false);
+    })
+    .catch((err) => {
+      setMenuError(err.message);
+      setMenuLoading(false);
+    });
+}, []);
 
   const categories = ["All", "Food", "Drinks"];
   const[selectedCategory, setSelectedCategory] = useState("All");
@@ -102,6 +120,9 @@ function App() {
   const receiptTax = receiptSubtotal * 0.16;
   const receiptTotal = receiptSubtotal + receiptTax;
 
+  //handling loading and error states for menu
+  if (menuLoading) return <p>Loading menu...</p>;
+  if (menuError) return <p>Error loading menu: {menuError}</p>;
   return (
     <div className="pos-container">
       <Toaster />
