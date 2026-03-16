@@ -42,6 +42,7 @@ function App() {
     date: "",
     time: "",
   });
+  const [paymentMethod, setPaymentMethod] = useState("cash"); // Default to cash
 
   // Add / remove / quantity functions
   const addToOrder = (item) => {
@@ -85,65 +86,6 @@ function App() {
   const receiptTotal = receiptSubtotal + receiptTax;
 
   // Checkout function with backend POST
-  // const checkout = async () => {
-  //   if (order.length === 0) return;
-
-  //   const completedOrder = [...order];
-  //   const now = new Date();
-  //   const orderNum = Math.floor(100000 + Math.random() * 900000);
-
-  //   setLastOrder(completedOrder);
-  //   setReceiptMeta({
-  //     orderNumber: orderNum,
-  //     date: now.toLocaleDateString(),
-  //     time: now.toLocaleTimeString(),
-  //   });
-  //   setShowReceipt(true);
-  //   setOrder([]); // clear current order
-
-  //   // Calculate totals for backend
-  //   const backendOrder = {
-  //     items: completedOrder.map((item) => ({
-  //       name: item.name,
-  //       price: item.price,
-  //       quantity: item.quantity,
-  //     })),
-  //     subtotal,
-  //     tax,
-  //     total,
-  //   };
-
-  //   // POST order to backend
-  //   try {
-  //     const res = await fetch("http://localhost:5000/api/orders", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify(backendOrder),
-  //     });
-
-  //     console.log ("Order API Status:", res.status);
-
-  //     if (!res.ok) throw new Error("Failed to save order");
-
-  //     const data = await res.json();
-  //     console.log("Order saved:", data.orderId);
-  //     toast.success(`Order #${orderNum} completed! Total: KSh. ${total.toFixed(2)}`, {
-  //       duration: 1500,
-  //       position: "top-right",
-  //       style: {
-  //         background: "#2c8f4e",
-  //         color: "#fff",
-  //         borderRadius: "8px",
-  //         padding: "16px",
-  //         fontSize: "14px",
-  //         fontWeight: "bold",
-  //       },
-  //     });
-  //   } catch (err) {
-  //     console.error(err);
-  //     toast.error("Failed to save order");
-  //   }
-  // };
   const checkout = async () => {
   if (order.length === 0) return;
 
@@ -182,6 +124,9 @@ function App() {
         subtotal,
         tax,
         total,
+        paymentMethod,
+        paymentStatus: paymentMethod === "cash" ? "paid" : "pending",
+        createdAt: now.toISOString(),
       }),
     });
 
@@ -294,6 +239,28 @@ function App() {
         {/* ACTION BAR */}
         <div className="action-bar">
           <button className="clear-btn" onClick={clearOrder}>Clear Order</button>
+          <div className="payment-method">
+            <label>
+              <input
+                type="radio"
+                name="paymentMethod"
+                value="cash"
+                checked={paymentMethod === "cash"}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              />
+              Cash
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="paymentMethod"
+                value="mpesa"
+                checked={paymentMethod === "mpesa"}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              />
+              M-Pesa
+            </label>
+          </div>
           <button className="checkout-btn" onClick={checkout} disabled={order.length === 0}>Checkout</button>
         </div>
       </div>

@@ -29,6 +29,9 @@ const menuSchema = new mongoose.Schema({
   available: Boolean,
 });
 
+//Order Schema
+
+
 // Menu model with explicit collection
 const MenuItem = mongoose.model("MenuItem", menuSchema, "menu_items");
 
@@ -44,6 +47,18 @@ const orderSchema = new mongoose.Schema({
   subtotal: Number,
   tax: Number,
   total: Number,
+
+  //payment fields
+  paymentMethod:{
+    type: String,
+    enum:["cash", "mpesa"],
+    required: true,
+  },
+  paymentStatus:{
+    type: String,
+    enum:["pending", "paid", "failed"],
+    default: "pending",
+  },
   createdAt: { type: Date, default: Date.now },
 });
 
@@ -74,10 +89,6 @@ async function seedMenu() {
 // Run seeding once DB is open
 mongoose.connection.once('open', seedMenu);
 
-// --------------------------
-// API Endpoints
-// --------------------------
-
 // GET menu items
 app.get("/api/menu", async (req, res) => {
   try {
@@ -94,18 +105,27 @@ app.post("/api/orders", async (req, res) => {
   try {
     console.log("Incoming order body:", req.body);
 
-    const { items, subtotal, tax, total } = req.body;
+    const { items, subtotal, tax, total, paymentMethod,} = req.body;
+
+    if(!paymentMethod){
+      console.log("Order rejected: No payment method provided");
+      return res.status(400).json({ error: "Payment method is required" });
+    }
 
     if (!items || items.length === 0) {
       console.log("Order rejected: No items in order");
       return res.status(400).json({ error: "Order must contain at least one item" });
     }
 
+    const paymentStatus = paymentMethod === "cash" ? "paid" : "pending";
+
     const order = new Order({
       items,
       subtotal,
       tax,
       total,
+      paymentMethod,
+      paymentStatus,
     });
 
     await order.save();
