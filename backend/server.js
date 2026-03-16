@@ -92,9 +92,12 @@ app.get("/api/menu", async (req, res) => {
 // POST a new order
 app.post("/api/orders", async (req, res) => {
   try {
+    console.log("Incoming order body:", req.body);
+
     const { items, subtotal, tax, total } = req.body;
 
     if (!items || items.length === 0) {
+      console.log("Order rejected: No items in order");
       return res.status(400).json({ error: "Order must contain at least one item" });
     }
 
@@ -113,7 +116,7 @@ app.post("/api/orders", async (req, res) => {
       orderId: order._id,
     });
   } catch (err) {
-    console.error(err);
+    console.error("Error saving order:", err);
     res.status(500).json({ error: "Failed to save order" });
   }
 });

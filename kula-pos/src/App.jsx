@@ -85,63 +85,136 @@ function App() {
   const receiptTotal = receiptSubtotal + receiptTax;
 
   // Checkout function with backend POST
+  // const checkout = async () => {
+  //   if (order.length === 0) return;
+
+  //   const completedOrder = [...order];
+  //   const now = new Date();
+  //   const orderNum = Math.floor(100000 + Math.random() * 900000);
+
+  //   setLastOrder(completedOrder);
+  //   setReceiptMeta({
+  //     orderNumber: orderNum,
+  //     date: now.toLocaleDateString(),
+  //     time: now.toLocaleTimeString(),
+  //   });
+  //   setShowReceipt(true);
+  //   setOrder([]); // clear current order
+
+  //   // Calculate totals for backend
+  //   const backendOrder = {
+  //     items: completedOrder.map((item) => ({
+  //       name: item.name,
+  //       price: item.price,
+  //       quantity: item.quantity,
+  //     })),
+  //     subtotal,
+  //     tax,
+  //     total,
+  //   };
+
+  //   // POST order to backend
+  //   try {
+  //     const res = await fetch("http://localhost:5000/api/orders", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify(backendOrder),
+  //     });
+
+  //     console.log ("Order API Status:", res.status);
+
+  //     if (!res.ok) throw new Error("Failed to save order");
+
+  //     const data = await res.json();
+  //     console.log("Order saved:", data.orderId);
+  //     toast.success(`Order #${orderNum} completed! Total: KSh. ${total.toFixed(2)}`, {
+  //       duration: 1500,
+  //       position: "top-right",
+  //       style: {
+  //         background: "#2c8f4e",
+  //         color: "#fff",
+  //         borderRadius: "8px",
+  //         padding: "16px",
+  //         fontSize: "14px",
+  //         fontWeight: "bold",
+  //       },
+  //     });
+  //   } catch (err) {
+  //     console.error(err);
+  //     toast.error("Failed to save order");
+  //   }
+  // };
   const checkout = async () => {
-    if (order.length === 0) return;
+  if (order.length === 0) return;
 
-    const completedOrder = [...order];
-    const now = new Date();
-    const orderNum = Math.floor(100000 + Math.random() * 900000);
+  // 🔒 Freeze order BEFORE clearing state
+  const orderSnapshot = [...order];
 
-    setLastOrder(completedOrder);
+  const now = new Date();
+  const orderNum = Math.floor(100000 + Math.random() * 900000);
+
+  const subtotal = orderSnapshot.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+  const tax = subtotal * 0.16;
+  const total = subtotal + tax;
+
+  console.log("🧾 Sending order to backend:", {
+    items: orderSnapshot,
+    subtotal,
+    tax,
+    total,
+  });
+
+  try {
+    const res = await fetch("http://localhost:5000/api/orders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        items: orderSnapshot.map(item => ({
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+        subtotal,
+        tax,
+        total,
+      }),
+    });
+
+    console.log("📡 Backend response status:", res.status);
+
+    const responseText = await res.text();
+    console.log("📩 Backend response body:", responseText);
+
+    if (!res.ok) {
+      throw new Error(responseText || "Backend error");
+    }
+
+    // ✅ Only show receipt AFTER backend success
+    setLastOrder(orderSnapshot);
     setReceiptMeta({
       orderNumber: orderNum,
       date: now.toLocaleDateString(),
       time: now.toLocaleTimeString(),
     });
+
     setShowReceipt(true);
-    setOrder([]); // clear current order
+    setOrder([]);
 
-    // Calculate totals for backend
-    const backendOrder = {
-      items: completedOrder.map((item) => ({
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-      })),
-      subtotal,
-      tax,
-      total,
-    };
+    toast.success(`Order #${orderNum} completed!`, {
+      duration: 1500,
+      position: "top-right",
+    });
 
-    // POST order to backend
-    try {
-      const res = await fetch("http://localhost:5000/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(backendOrder),
-      });
-
-      if (!res.ok) throw new Error("Failed to save order");
-
-      const data = await res.json();
-      console.log("Order saved:", data.orderId);
-      toast.success(`Order #${orderNum} completed! Total: KSh. ${total.toFixed(2)}`, {
-        duration: 1500,
-        position: "top-right",
-        style: {
-          background: "#2c8f4e",
-          color: "#fff",
-          borderRadius: "8px",
-          padding: "16px",
-          fontSize: "14px",
-          fontWeight: "bold",
-        },
-      });
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to save order");
-    }
-  };
+  } catch (err) {
+    console.error("🔥 Checkout error:", err);
+    toast.error("Failed to save order");
+  }
+};
 
   const printReceipt = () => window.print();
 
