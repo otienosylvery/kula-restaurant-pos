@@ -41,6 +41,8 @@ function App() {
     orderNumber: "",
     date: "",
     time: "",
+    paymentMethod: "",
+    paymentStatus: "",
   });
   const [paymentMethod, setPaymentMethod] = useState("cash"); // Default to cash
 
@@ -145,6 +147,8 @@ function App() {
       orderNumber: orderNum,
       date: now.toLocaleDateString(),
       time: now.toLocaleTimeString(),
+      paymentMethod,
+      paymentStatus: paymentMethod === "cash" ? "paid" : "pending",
     });
 
     setShowReceipt(true);
@@ -234,12 +238,30 @@ function App() {
             <span>Total</span>
             <span>KSh. {total.toFixed(2)}</span>
           </div>
+  
         </div>
+                             <div className="payment-selector">
+  <button
+    className={`payment-card ${paymentMethod === "cash" ? "active" : ""}`}
+    onClick={() => setPaymentMethod("cash")}
+  >
+    <span className="payment-icon">💵</span>
+    <span className="payment-label">Cash</span>
+  </button>
+
+  <button
+    className={`payment-card ${paymentMethod === "mpesa" ? "active" : ""}`}
+    onClick={() => setPaymentMethod("mpesa")}
+  >
+    <span className="payment-icon">📱</span>
+    <span className="payment-label">M-Pesa</span>
+  </button>
+</div>
 
         {/* ACTION BAR */}
         <div className="action-bar">
           <button className="clear-btn" onClick={clearOrder}>Clear Order</button>
-          <div className="payment-method">
+          {/* <div className="payment-method">
             <label>
               <input
                 type="radio"
@@ -260,7 +282,7 @@ function App() {
               />
               M-Pesa
             </label>
-          </div>
+          </div> */}
           <button className="checkout-btn" onClick={checkout} disabled={order.length === 0}>Checkout</button>
         </div>
       </div>
@@ -278,6 +300,12 @@ function App() {
               <div>{receiptMeta.time}</div>
             </div>
             <hr />
+            <div className= "receipt-payment">
+              <span className={`payment-badge ${receiptMeta.paymentStatus}`}
+              >
+                {receiptMeta.paymentMethod.toUpperCase()} - {receiptMeta.paymentStatus.toUpperCase()}
+              </span>
+            </div>
             {lastOrder.map((item) => (
               <div key={item.id} className="receipt-item">
                 <span>{item.name} x {item.quantity}</span>

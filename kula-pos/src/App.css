@@ -208,6 +208,47 @@ html, body, #root {
   background: #ccc;
   cursor: not-allowed;
 }
+/* PAYMENT SELECTOR */
+.payment-selector {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.payment-card {
+  flex: 1;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1.5px solid #ddd;
+  background: #f9f9f9;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: all 0.15s ease;
+  font-weight: bold;
+  color: #000;
+}
+
+.payment-card:hover {
+  background: #f9f9f9;
+}
+
+.payment-card.active {
+  border-color: #2e7d32;
+  background: #f9f9f9;
+  color: #2e7d32;
+}
+
+.payment-icon {
+  font-size: 18px;
+  margin-bottom: 2px;
+}
+
+.payment-label {
+  font-size: 13px;
+  font-weight: 600;
+}
 
 /* RECEIPT MODAL */
 .receipt-overlay {
@@ -277,6 +318,34 @@ html, body, #root {
   .menu-panel, .order { flex: none; width: 100%; height: 50vh; border-left: none; border-top: 2px solid #ddd; }
 }
 
+.receipt-payment {
+  text-align: center;
+  margin: 8px 0 12px;
+}
+
+.payment-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 12px;
+  letter-spacing: 0.5px;
+}
+
+.payment-badge.paid {
+  background: #e6f6ed;
+  color: #1b7f4b;
+}
+
+.payment-badge.pending {
+  background: #fff4e5;
+  color: #b35c00;
+}
+
+.payment-badge.failed {
+  background: #fdecea;
+  color: #b42318;
+}
 /* PRINT STYLING */
 @media print {
   body * { visibility: hidden; }
