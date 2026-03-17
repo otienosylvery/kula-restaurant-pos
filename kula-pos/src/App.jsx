@@ -44,7 +44,7 @@ function App() {
     paymentMethod: "",
     paymentStatus: "",
   });
-  const [paymentMethod, setPaymentMethod] = useState("cash"); // Default to cash
+  const [paymentMethod, setPaymentMethod] = useState(null); // Default to null so the user can selectby themselves
 
   // Add / remove / quantity functions
   const addToOrder = (item) => {
@@ -262,9 +262,20 @@ function App() {
 
 
         {/* ACTION BAR */}
+        {order.length > 0 && !paymentMethod && (
+          <div className = "payment-warning">
+            Select a payment method to continue
+          </div>
+        )}
         <div className="action-bar">
           <button className="clear-btn" onClick={clearOrder}>Clear Order</button>
-          <button className="checkout-btn" onClick={checkout} disabled={order.length === 0}>Checkout</button>
+          <button 
+            className="checkout-btn" 
+            onClick={checkout} 
+            disabled={order.length === 0 || !paymentMethod}
+          >
+              Checkout
+          </button>
         </div>
       </div>
 
@@ -310,7 +321,21 @@ function App() {
             </div>
             <div className="receipt-actions">
               <button className="print-btn" onClick={printReceipt}>Print Receipt</button>
-              <button className="new-order-btn" onClick={() => setShowReceipt(false)}>New Order</button>
+              <button 
+                className="new-order-btn" 
+                onClick={() => {
+                  setShowReceipt(false)
+                  setLastOrder([]);
+                  setReceiptMeta({
+                    orderNumber: "",
+                    date: "",
+                    time: "",
+                  });
+                  setPaymentMethod(null);
+                }}
+              >
+                New Order
+              </button>
             </div>
             <div className="receipt-footer">
               <p><span style={{ fontStyle: 'italic', fontWeight: 'bold' }}>Sip. Bite. Smile.</span></p>

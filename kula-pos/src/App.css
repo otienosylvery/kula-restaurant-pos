@@ -259,6 +259,11 @@ html, body, #root {
   font-size: 13px;
   font-weight: 600;
 }
+.payment-warning{
+  font-size: 12px;
+  color: #c62828;
+  margin-bottom: 6px;
+}
 
 /* RECEIPT MODAL */
 .receipt-overlay {
