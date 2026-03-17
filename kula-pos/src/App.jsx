@@ -240,7 +240,8 @@ function App() {
           </div>
   
         </div>
-                             <div className="payment-selector">
+        {order.length > 0 && (
+          <div className="payment-selector">
   <button
     className={`payment-card ${paymentMethod === "cash" ? "active" : ""}`}
     onClick={() => setPaymentMethod("cash")}
@@ -257,32 +258,12 @@ function App() {
     <span className="payment-label">M-Pesa</span>
   </button>
 </div>
+        )}
+
 
         {/* ACTION BAR */}
         <div className="action-bar">
           <button className="clear-btn" onClick={clearOrder}>Clear Order</button>
-          {/* <div className="payment-method">
-            <label>
-              <input
-                type="radio"
-                name="paymentMethod"
-                value="cash"
-                checked={paymentMethod === "cash"}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-              />
-              Cash
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="paymentMethod"
-                value="mpesa"
-                checked={paymentMethod === "mpesa"}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-              />
-              M-Pesa
-            </label>
-          </div> */}
           <button className="checkout-btn" onClick={checkout} disabled={order.length === 0}>Checkout</button>
         </div>
       </div>

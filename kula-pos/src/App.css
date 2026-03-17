@@ -213,8 +213,18 @@ html, body, #root {
   display: flex;
   gap: 10px;
   margin: 10px 0;
+  animation: fadeIn 0.3s ease;
 }
-
+@keyframes fadeIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(10px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+   }
+}
 .payment-card {
   flex: 1;
   padding: 8px;
