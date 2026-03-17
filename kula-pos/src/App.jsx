@@ -277,16 +277,18 @@ function App() {
               <div className="business-name">Yola Bites Eatery</div>
               <div className="business-address">Stadium Road, Nyandiwa, Kenya.</div>
               <div>Order #: {receiptMeta.orderNumber}</div>
-              <div>{receiptMeta.date}</div>
-              <div>{receiptMeta.time}</div>
-            </div>
-            <hr />
-            <div className= "receipt-payment">
+              <div className= "receipt-payment">
+                Payment:
               <span className={`payment-badge ${receiptMeta.paymentStatus}`}
               >
                 {receiptMeta.paymentMethod.toUpperCase()} - {receiptMeta.paymentStatus.toUpperCase()}
               </span>
             </div>
+              <div>{receiptMeta.date}</div>
+              <div>{receiptMeta.time}</div>
+            </div>
+            <hr />
+            
             {lastOrder.map((item) => (
               <div key={item.id} className="receipt-item">
                 <span>{item.name} x {item.quantity}</span>
