@@ -59,6 +59,13 @@ const orderSchema = new mongoose.Schema({
     enum:["pending", "paid", "failed"],
     default: "pending",
   },
+  mpesa: {
+    checkoutRequestId: String,
+    merchantRequestId: String,
+     mpesaReceiptNumber: String,
+     resultCode: Number,
+     resultDesc: String,
+  },
   createdAt: { type: Date, default: Date.now },
 });
 
