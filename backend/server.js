@@ -1,7 +1,9 @@
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
+import axios from "axios";
 import dotenv from "dotenv";
+
 
 dotenv.config();
 
@@ -99,6 +101,21 @@ async function seedMenu() {
 // Run seeding once DB is open
 mongoose.connection.once('open', seedMenu);
 
+//daraja - mpesa
+const getMpesaAccessToken = async () => {
+  const auth = Buffer.from(
+    `${process.env.MPESA_CONSUMER_KEY}:${process.env.MPESA_CONSUMER_SECRET}`
+  ).toString("base64");
+
+  const res = await axios.get(
+    "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
+    {
+      headers: {Authorization: `Basic ${auth}`},
+    }
+  );
+  return res.data.access_token;
+};
+
 // GET menu items
 app.get("/api/menu", async (req, res) => {
   try {
@@ -148,6 +165,66 @@ app.post("/api/orders", async (req, res) => {
   } catch (err) {
     console.error("Error saving order:", err);
     res.status(500).json({ error: "Failed to save order" });
+  }
+});
+
+//mpesa stk push route
+app.post("/api/payments/mpesa/stk-push", async (req, res)=>{
+  try{
+    const {orderId, phoneNumber} = req.body;
+
+    const order = await Order.findById(orderId);
+    if(!order) return res.status(404).json({error: "Order not found"});
+
+    const mpesaAccessToken = await getMpesaAccessToken();
+
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[^0-9]/g, "")
+      .slice(0,14);
+
+    const password = Buffer.from(
+      process.env.MPESA_SHORTCODE +
+        process.env.MPESA_PASSKEY +
+        timestamp
+    ).toString("base64");
+
+    const stkRes = await axios.post(
+      "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
+      {
+        BusinessShortCode: process.env.MPESA_SHORTCODE,
+        Password: password,
+        Timestamp: timestamp,
+        TransactionType: "CustomerPayBillOnline",
+        Amount: Math.round(order.total),
+        PartyA: phoneNumber,
+        PartyB: process.env.MPESA_SHORTCODE,
+        PhoneNumber: phoneNumber,
+        CallBackURL: process.env.MPESA_CALLBACK_URL,
+        AccountReference: `ORDER-${order._id}`,
+        TransactionDesc: "POS Payment",
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${mpesaAccessToken}`,
+        },
+  });
+
+  //save IDs for callback matching
+  order.mpesa = {
+      checkoutRequestId: stkRes.data.CheckoutRequestID,
+      merchantRequestId: stkRes.data.MerchantRequestID,
+      phoneNumber,
+    };
+    await order.save();
+
+    res.json({
+      message: "STK Push sent",
+      checkoutRequestId: stkRes.data.CheckoutRequestID,
+    });
+  } catch (err) {
+    console.error("STK error:", err.response?.data || err.message);
+    res.status(500).json({ error: "Failed to initiate STK push" });
   }
 });
 
