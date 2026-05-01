@@ -1,8 +1,49 @@
 import React, { useState, useEffect } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import "./App.css";
+// import { set } from "mongoose";
 
-function App() {
+const API_BASE_URL = "http://localhost:5000";
+
+async function createOrder(payload) {
+  const res = await fetch(`${API_BASE_URL}/api/orders`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  const createOrder = await res.json();
+  console.log("✅ Order created with ID:", createdOrder._id);
+
+  if (!createOrder._id) {
+    throw new Error("Order ID missing from backend response");
+  }
+  await initiateMpesaPayment(createOrder._id);
+}
+async function initiateMpesaPayment(orderId, phoneNumber) {
+  const res = await fetch(`${API_BASE_URL}/api/payments/mpesa/stk-push`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ orderId: createOrder._id, phoneNumber }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+async function fetchOrderStatus(orderId) {
+  const res = await fetch(`${API_BASE_URL}/api/orders/${orderId}`);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+const App = () => {
+
+  //Phone Number state for M-Pesa
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [processingPayment, setProcessingPayment] = useState(false);
+
   // Menu state
   const [menu, setMenu] = useState([]);
   const [menuLoading, setMenuLoading] = useState(true);
@@ -89,80 +130,88 @@ function App() {
   const receiptTax = receiptSubtotal * 0.16;
   const receiptTotal = receiptSubtotal + receiptTax;
 
-  // Checkout function with backend POST
-  const checkout = async () => {
-    if (order.length === 0) return;
+    const finalizedReceipt = (orderData, paymentStatus) => {
+      const now = new Date();
 
-    // 🔒 Freeze order BEFORE clearing state
-    const orderSnapshot = [...order];
-
-    const now = new Date();
-    const orderNum = Math.floor(100000 + Math.random() * 900000);
-
-    const subtotal = orderSnapshot.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0,
-    );
-    const tax = subtotal * 0.16;
-    const total = subtotal + tax;
-
-    console.log("🧾 Sending order to backend:", {
-      items: orderSnapshot,
-      subtotal,
-      tax,
-      total,
-    });
-
-    try {
-      const res = await fetch("http://localhost:5000/api/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          items: orderSnapshot.map((item) => ({
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-          })),
-          subtotal,
-          tax,
-          total,
-          paymentMethod,
-          paymentStatus: paymentMethod === "cash" ? "paid" : "pending",
-          createdAt: now.toISOString(),
-        }),
-      });
-
-      console.log("📡 Backend response status:", res.status);
-
-      const responseText = await res.text();
-      console.log("📩 Backend response body:", responseText);
-
-      if (!res.ok) {
-        throw new Error(responseText || "Backend error");
-      }
-
-      // ✅ Only show receipt AFTER backend success
-      setLastOrder(orderSnapshot);
+      setLastOrder(order);
       setReceiptMeta({
-        orderNumber: orderNum,
+        orderNumber: orderData._id || Math.floor(100000 + Math.random() * 900000),
         date: now.toLocaleDateString(),
         time: now.toLocaleTimeString(),
         paymentMethod,
-        paymentStatus: paymentMethod === "cash" ? "paid" : "pending",
+        paymentStatus: paymentStatus,
       });
 
-      setShowReceipt(true);
       setOrder([]);
+      setShowReceipt(true);
+      setProcessingPayment(false);
+      setPaymentMethod(null);
+      setPhoneNumber("");
+    };
 
-      toast.success(`Order #${orderNum} completed!`, {
-        duration: 1500,
-        position: "top-right",
-      });
+  // Checkout function with backend POST
+  const checkout = async () => {
+    if (order.length === 0 || !paymentMethod ) return;
+
+    if (paymentMethod === "mpesa" && phoneNumber.length < 10) {
+      toast.error("Please enter a valid phone number for M-Pesa");
+      return;
+    }
+
+    setProcessingPayment(true);
+
+    try{
+      const orderPayload ={
+        items: order.map((item) => ({
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+        subtotal,
+        tax,
+        total,
+        paymentMethod,
+        // paymentStatus: paymentMethod === "cash" ? "paid" : "pending",
+        // createdAt: new Date().toISOString(),
+      };
+
+      //create order in backend
+      const createdOrder = await createOrder(orderPayload);
+      const orderId = createdOrder._id;
+      console.log("✅ Order created with ID:", createdOrder._id);
+
+      if(paymentMethod === "mpesa"){
+        //initiate mpesa payment
+        await initiateMpesaPayment(createdOrder._id, phoneNumber);
+        console.log("📱 M-Pesa payment initiated for order ID:", createdOrder._id);
+        toast.success("M-Pesa payment initiated! Check your phone to complete the transaction.", {
+          duration: 5000,
+          position: "top-right",
+        });
+
+        //poll for payment status
+        const poll = setInterval(async () => {
+          const updated= await fetchOrderStatus(orderId);
+          console.log("🔄 Polled order status:", updated);
+
+          if(updated.paymentStatus === "paid"){
+            clearInterval(poll);
+            finalizedReceipt(updated, "paid");
+          }
+          if (updated.paymentStatus === "failed"){
+            clearInterval(poll);
+            toast.error("M-Pesa payment failed. Please try again.");
+            setProcessingPayment(false);
+          }
+        }, 3000);
+        return; // Exit early since receipt will be handled after payment confirmation
+      }
+
+      // For cash payments, finalize receipt immediately
+      finalizedReceipt({items: order}, "paid");
     } catch (err) {
       console.error("🔥 Checkout error:", err);
-      toast.error("Failed to save order");
+      toast.error("Checkout failed: " + err.message); 
     }
   };
 
@@ -269,7 +318,19 @@ function App() {
               <span className="payment-label">M-Pesa</span>
             </button>
           </div>
+          
         )}
+        {paymentMethod === "mpesa" && (
+  <div className="mpesa-phone-wrapper">
+    <input
+      type="tel"
+      className="mpesa-input"
+      placeholder="07XXXXXXXX"
+      value={phoneNumber}
+      onChange={(e) => setPhoneNumber(e.target.value)}
+    />
+  </div>
+)}
 
         {/* ACTION BAR */}
         {order.length > 0 && !paymentMethod && (
@@ -287,9 +348,9 @@ function App() {
               checkout();
               setPaymentMethod(null);
             }}
-            disabled={order.length === 0 || !paymentMethod}
+            disabled={processingPayment ||order.length === 0 || !paymentMethod}
           >
-            Checkout
+            {processingPayment ? "Processing..." : "Checkout"}
           </button>
         </div>
       </div>
@@ -370,6 +431,6 @@ function App() {
       )}
     </div>
   );
-}
+};
 
 export default App;

@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import cors from "cors";
 import axios from "axios";
 import dotenv from "dotenv";
+import {initiateSTKPush} from "./services/mpesa.js";
 
 
 dotenv.config();
@@ -127,6 +128,12 @@ app.get("/api/menu", async (req, res) => {
   }
 });
 
+app.get("/api/orders/:id", async (req, res) => {
+  const order = await Order.findById(req.params.id);
+  if (!order) return res.status(404).json({ error: "Order not found" });
+  res.json(order);
+});
+
 // POST a new order
 app.post("/api/orders", async (req, res) => {
   try {
@@ -158,10 +165,7 @@ app.post("/api/orders", async (req, res) => {
     await order.save();
 
     console.log("✅ Order saved:", order._id);
-    res.status(201).json({
-      message: "Order saved successfully",
-      orderId: order._id,
-    });
+    res.status(201).json(order);
   } catch (err) {
     console.error("Error saving order:", err);
     res.status(500).json({ error: "Failed to save order" });
@@ -169,64 +173,115 @@ app.post("/api/orders", async (req, res) => {
 });
 
 //mpesa stk push route
-app.post("/api/payments/mpesa/stk-push", async (req, res)=>{
-  try{
-    const {orderId, phoneNumber} = req.body;
+app.post("/api/payments/mpesa/stk-push", async (req, res) => {
+  try {
+    const { orderId, phoneNumber } = req.body;
+
+    if (!orderId || !phoneNumber) {
+      return res.status(400).json({ error: "orderId and phoneNumber required" });
+    }
 
     const order = await Order.findById(orderId);
-    if(!order) return res.status(404).json({error: "Order not found"});
+    if (!order) return res.status(404).json({ error: "Order not found" });
 
-    const mpesaAccessToken = await getMpesaAccessToken();
-
-    const timestamp = new Date()
-      .toISOString()
-      .replace(/[^0-9]/g, "")
-      .slice(0,14);
-
-    const password = Buffer.from(
-      process.env.MPESA_SHORTCODE +
-        process.env.MPESA_PASSKEY +
-        timestamp
-    ).toString("base64");
-
-    const stkRes = await axios.post(
-      "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
-      {
-        BusinessShortCode: process.env.MPESA_SHORTCODE,
-        Password: password,
-        Timestamp: timestamp,
-        TransactionType: "CustomerPayBillOnline",
-        Amount: Math.round(order.total),
-        PartyA: phoneNumber,
-        PartyB: process.env.MPESA_SHORTCODE,
-        PhoneNumber: phoneNumber,
-        CallBackURL: process.env.MPESA_CALLBACK_URL,
-        AccountReference: `ORDER-${order._id}`,
-        TransactionDesc: "POS Payment",
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${mpesaAccessToken}`,
-        },
-  });
-
-  //save IDs for callback matching
-  order.mpesa = {
-      checkoutRequestId: stkRes.data.CheckoutRequestID,
-      merchantRequestId: stkRes.data.MerchantRequestID,
+    const stkRes = await initiateSTKPush(
       phoneNumber,
+      Math.round(order.total),
+      order._id.toString()
+    );
+
+    order.mpesa = {
+      checkoutRequestId: stkRes.CheckoutRequestID,
+      merchantRequestId: stkRes.MerchantRequestID,
     };
+
     await order.save();
 
     res.json({
       message: "STK Push sent",
-      checkoutRequestId: stkRes.data.CheckoutRequestID,
+      checkoutRequestId: stkRes.CheckoutRequestID,
     });
-  } catch (err) {
-    console.error("STK error:", err.response?.data || err.message);
-    res.status(500).json({ error: "Failed to initiate STK push" });
+
+  } catch (error) {
+    console.error("STK Push error:", error.response?.data || error.message);
+    res.status(500).json({
+      error: "Failed to initiate STK push",
+      details: error.response?.data || error.message,
+    });
   }
 });
+
+//mpesa callback route
+// --------------------------
+// M-Pesa Callback Route
+// --------------------------
+app.post("/api/payments/mpesa/callback", async (req, res) => {
+  try {
+    console.log("📥 M-Pesa Callback Received:", JSON.stringify(req.body, null, 2));
+
+    const callback = req.body.Body?.stkCallback;
+
+    if (!callback) {
+      return res.status(400).json({ error: "Invalid callback payload" });
+    }
+
+    const {
+      MerchantRequestID,
+      CheckoutRequestID,
+      ResultCode,
+      ResultDesc,
+      CallbackMetadata,
+    } = callback;
+
+    // 1️⃣ Find order using CheckoutRequestID
+    const order = await Order.findOne({
+      "mpesa.checkoutRequestId": CheckoutRequestID,
+    });
+
+    if (!order) {
+      console.error("❌ Order not found for callback:", CheckoutRequestID);
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    // 2️⃣ Handle FAILED payments
+    if (ResultCode !== 0) {
+      order.paymentStatus = "failed";
+      order.mpesa.resultCode = ResultCode;
+      order.mpesa.resultDesc = ResultDesc;
+
+      await order.save();
+
+      return res.json({ message: "Payment failed recorded" });
+    }
+
+    // 3️⃣ Extract metadata values
+    let mpesaReceiptNumber = null;
+
+    CallbackMetadata.Item.forEach(item => {
+      if (item.Name === "MpesaReceiptNumber") {
+        mpesaReceiptNumber = item.Value;
+      }
+    });
+
+    // 4️⃣ Mark order as PAID
+    order.paymentStatus = "paid";
+    order.mpesa.mpesaReceiptNumber = mpesaReceiptNumber;
+    order.mpesa.resultCode = ResultCode;
+    order.mpesa.resultDesc = ResultDesc;
+
+    await order.save();
+
+    console.log("✅ Payment successful for order:", order._id);
+
+    // 5️⃣ IMPORTANT: Acknowledge Safaricom
+    res.json({ ResultCode: 0, ResultDesc: "Success" });
+
+  } catch (error) {
+    console.error("❌ Callback processing error:", error);
+    res.status(500).json({ error: "Callback processing failed" });
+  }
+});
+
 
 // --------------------------
 // Start Server
