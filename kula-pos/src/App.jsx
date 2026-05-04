@@ -8,26 +8,32 @@ const API_BASE_URL = "http://localhost:5000";
 async function createOrder(payload) {
   const res = await fetch(`${API_BASE_URL}/api/orders`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  const createOrder = await res.json();
-  console.log("✅ Order created with ID:", createdOrder._id);
 
-  if (!createOrder._id) {
-    throw new Error("Order ID missing from backend response");
+  const data = await res.json();
+  console.log("✅ Order creation response:", data);
+
+  if (!res.ok) {
+    throw new Error(data.error || "Failed to create order");
   }
-  await initiateMpesaPayment(createOrder._id);
+
+
+  // ✅ IMPORTANT
+  return data.orderId;
 }
 async function initiateMpesaPayment(orderId, phoneNumber) {
+  console.log(orderId, phoneNumber);
+  if (!orderId || !phoneNumber) {
+    throw new Error("orderId and phoneNumber are required to initiate M-Pesa payment");
+  }
   const res = await fetch(`${API_BASE_URL}/api/payments/mpesa/stk-push`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ orderId: createOrder._id, phoneNumber }),
+    body: JSON.stringify({ orderId, phoneNumber }),
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
@@ -135,7 +141,7 @@ const App = () => {
 
       setLastOrder(order);
       setReceiptMeta({
-        orderNumber: orderData._id || Math.floor(100000 + Math.random() * 900000),
+        orderNumber: orderData._id || orderData.orderId || Math.floor(100000 + Math.random() * 900000),
         date: now.toLocaleDateString(),
         time: now.toLocaleTimeString(),
         paymentMethod,
@@ -176,14 +182,14 @@ const App = () => {
       };
 
       //create order in backend
-      const createdOrder = await createOrder(orderPayload);
-      const orderId = createdOrder._id;
-      console.log("✅ Order created with ID:", createdOrder._id);
+      const orderId= await createOrder(orderPayload);
+      // const orderId = createdOrder;
+      console.log("✅ Order created with ID:", orderId);
 
       if(paymentMethod === "mpesa"){
         //initiate mpesa payment
-        await initiateMpesaPayment(createdOrder._id, phoneNumber);
-        console.log("📱 M-Pesa payment initiated for order ID:", createdOrder._id);
+        await initiateMpesaPayment(orderId, phoneNumber);
+        console.log("📱 M-Pesa payment initiated for order ID:", orderId);
         toast.success("M-Pesa payment initiated! Check your phone to complete the transaction.", {
           duration: 5000,
           position: "top-right",
@@ -346,7 +352,7 @@ const App = () => {
             className="checkout-btn"
             onClick={() => {
               checkout();
-              setPaymentMethod(null);
+              // setPaymentMethod(null);
             }}
             disabled={processingPayment ||order.length === 0 || !paymentMethod}
           >

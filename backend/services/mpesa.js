@@ -42,7 +42,7 @@ export async function initiateSTKPush(phoneNumber, amount, orderId) {
             PartyA: phoneNumber,
             PartyB: process.env.MPESA_SHORTCODE,
             PhoneNumber: phoneNumber,
-            CallBackURL: `${process.env.CALLBACK_URL}/api/mpesa/callback`,
+            CallBackURL: `${process.env.MPESA_CALLBACK_URL}/api/mpesa/callback`,
             AccountReference: orderId,
             TransactionDesc: `Payment for order ${orderId}`,
         };
