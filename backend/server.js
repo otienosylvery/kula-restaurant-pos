@@ -235,79 +235,84 @@ app.post("/api/payments/mpesa/stk-push", async (req, res) => {
     });
   }
 });
+-(
+  // M-Pesa Callback Route
+  // --------------------------
+  app.post("/api/payments/mpesa/callback", async (req, res) => {
+    try {
+      console.log(
+        "📥 M-Pesa Callback Received:",
+        JSON.stringify(req.body, null, 2),
+      );
 
-//mpesa callback route
-// --------------------------
-// M-Pesa Callback Route
-// --------------------------
-app.post("/api/payments/mpesa/callback", async (req, res) => {
-  try {
-    console.log(
-      "📥 M-Pesa Callback Received:",
-      JSON.stringify(req.body, null, 2),
-    );
+      const callback = req.body.Body?.stkCallback;
 
-    const callback = req.body.Body?.stkCallback;
+      if (!callback) {
+        console.error("❌ Invalid callback payload");
+        return res.json({ ResultCode: 0, ResultDesc: "OK" });
+      }
 
-    if (!callback) {
-      return res.status(400).json({ error: "Invalid callback payload" });
-    }
+      const {
+        MerchantRequestID,
+        CheckoutRequestID,
+        ResultCode,
+        ResultDesc,
+        CallbackMetadata,
+      } = callback;
 
-    const {
-      MerchantRequestID,
-      CheckoutRequestID,
-      ResultCode,
-      ResultDesc,
-      CallbackMetadata,
-    } = callback;
+      // 1️⃣ Find order using CheckoutRequestID
+      const order = await Order.findOne({
+        "mpesa.checkoutRequestId": CheckoutRequestID,
+      });
 
-    // 1️⃣ Find order using CheckoutRequestID
-    const order = await Order.findOne({
-      "mpesa.checkoutRequestId": CheckoutRequestID,
-    });
+      if (!order) {
+        console.error("❌ Order not found for callback:", CheckoutRequestID);
+        return res.json({ ResultCode: 0, ResultDesc: "OK" });
+      }
 
-    if (!order) {
-      console.error("❌ Order not found for callback:", CheckoutRequestID);
-      return res.status(404).json({ error: "Order not found" });
-    }
+      // 2️⃣ Handle FAILED payments
+      if (ResultCode !== 0) {
+        order.paymentStatus = "failed";
+        order.mpesa.resultCode = ResultCode;
+        order.mpesa.resultDesc = ResultDesc;
 
-    // 2️⃣ Handle FAILED payments
-    if (ResultCode !== 0) {
-      order.paymentStatus = "failed";
-      order.mpesa.resultCode = ResultCode;
-      order.mpesa.resultDesc = ResultDesc;
+        await order.save();
+
+        console.log("❌ Payment failed for order:", ResultDesc);
+        return res.json({ ResultCode: 0, ResultDesc: "OK" });
+      }
+
+      // 3️⃣ Extract metadata values
+
+      if (!CallbackMetadata || !CallbackMetadata.Item) {
+        console.error("❌ Missing CallbackMetadata in successful payment");
+        return res.json({ ResultCode: 0, ResultDesc: "OK" });
+      }
+      // let mpesaReceiptNumber = null;
+      const meta = {};
+      CallbackMetadata.Item.forEach((item) => {
+        meta[item.Name] = item.Value;
+      });
+
+      // 4️⃣ Mark order as PAID
+      order.paymentStatus = "paid";
+      order.mpesa.mpesaReceiptNumber = meta.MpesaReceiptNumber;
+      order.mpesa.amount = meta.Amount;
+      order.mpesa.phoneNumber = meta.PhoneNumber;
+      order.paidAt = new Date();
 
       await order.save();
 
-      return res.json({ message: "Payment failed recorded" });
+      console.log("✅ Payment successful for order:", order._id);
+
+      // 5️⃣ IMPORTANT: Acknowledge Safaricom
+      res.json({ ResultCode: 0, ResultDesc: "OK" });
+    } catch (error) {
+      console.error("❌ Callback processing error:", error);
+      return res.json({ ResultCode: 0, ResultDesc: "OK" });
     }
-
-    // 3️⃣ Extract metadata values
-    let mpesaReceiptNumber = null;
-
-    CallbackMetadata.Item.forEach((item) => {
-      if (item.Name === "MpesaReceiptNumber") {
-        mpesaReceiptNumber = item.Value;
-      }
-    });
-
-    // 4️⃣ Mark order as PAID
-    order.paymentStatus = "paid";
-    order.mpesa.mpesaReceiptNumber = mpesaReceiptNumber;
-    order.mpesa.resultCode = ResultCode;
-    order.mpesa.resultDesc = ResultDesc;
-
-    await order.save();
-
-    console.log("✅ Payment successful for order:", order._id);
-
-    // 5️⃣ IMPORTANT: Acknowledge Safaricom
-    res.json({ ResultCode: 0, ResultDesc: "Success" });
-  } catch (error) {
-    console.error("❌ Callback processing error:", error);
-    res.status(500).json({ error: "Callback processing failed" });
-  }
-});
+  })
+);
 
 // --------------------------
 // Start Server
